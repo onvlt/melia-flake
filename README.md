@@ -12,6 +12,10 @@ You can run Melia directly without installing it:
 
 ```bash
 nix run git+https://code.nolog.cz/uwundrej/melia-flake
+
+# If allowUnfree is not set.
+export NIXPKGS_ALLOW_UNFREE=1
+nix run --impure git+https://code.nolog.cz/uwundrej/melia-flake
 ```
 
 ### Install in NixOS
