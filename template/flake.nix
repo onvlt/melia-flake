@@ -40,6 +40,27 @@
             inherit (arch) sha256;
           };
 
+          appImageContent = pkgs.appimageTools.extract { inherit pname version src; };
+
+          desktopItem = pkgs.makeDesktopItem {
+            name = pname;
+            exec = "${pname} %U";
+            icon = "melia";
+            type = "Application";
+            desktopName = "Melia";
+            genericName = "Email Client";
+            comment = "The modern email client for Linux";
+            categories = [
+              "Network"
+              "Email"
+            ];
+            mimeTypes = [
+              "message/rfc822"
+              "x-scheme-handler/mailto"
+              "x-scheme-handler/melia"
+            ];
+          };
+
           package = pkgs.appimageTools.wrapType2 {
             inherit pname version src;
 
@@ -51,9 +72,16 @@
               description = "The modern email client for Linux";
               homepage = "https://melia.buxjr.com/";
               downloadPage = "https://melia.buxjr.com/download";
-              license = pkgs.lib.licenses.unfree;
+              # license = pkgs.lib.licenses.unfree;
               platforms = systems;
             };
+
+            extraInstallCommands = ''
+              mkdir -p $out/share/applications/
+              mkdir -p $out/share/icons/hicolor/512x512/apps/
+              install -m 444 -D ${appImageContent}/melia.png "$out/share/icons/hicolor/512x512/apps/melia.png"
+              install -m 444 -D ${desktopItem}/share/applications/*.desktop $out/share/applications/
+            '';
           };
         in
         {
