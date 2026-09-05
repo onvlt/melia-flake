@@ -46,6 +46,14 @@
             extraPkgs = pkgs: [
               pkgs.libappimage
             ];
+
+            meta = {
+              description = "The modern email client for Linux";
+              homepage = "https://melia.buxjr.com/";
+              downloadPage = "https://melia.buxjr.com/download";
+              license = pkgs.lib.licenses.unfree;
+              platforms = systems;
+            };
           };
         in
         {
