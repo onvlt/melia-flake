@@ -6,7 +6,7 @@
   };
 
   outputs =
-    { nixpkgs, ... }:
+    { self, nixpkgs, ... }:
     let
       systems = [
         "x86_64-linux"
@@ -25,37 +25,37 @@
           sha256 = "0mhb9xqzb0qpy46yh5wrrixw1zhdvnzknr0yrl9cf7qhp09jls64";
         };
       };
-
-      mkPackage =
+    in
+    {
+      packages = forAllSystems (
         system:
         let
           pkgs = import nixpkgs { inherit system; };
           arch = archMap.${system};
           pname = "melia";
           version = "1.1.370";
+
           src = pkgs.fetchurl {
             url = "https://github.com/buxjr311/melia-app/releases/download/v${version}/${pname}_${version}_${arch.suffix}.AppImage";
             inherit (arch) sha256;
           };
-        in
-        pkgs.appimageTools.wrapType2 {
-          inherit pname version src;
 
-          extraPkgs = pkgs: [
-            pkgs.libappimage
-          ];
-        };
-    in
-    {
-      packages = forAllSystems (
-        system:
-        let
-          package = mkPackage system;
+          package = pkgs.appimageTools.wrapType2 {
+            inherit pname version src;
+
+            extraPkgs = pkgs: [
+              pkgs.libappimage
+            ];
+          };
         in
         {
           default = package;
           melia = package;
         }
       );
+
+      overlays.default = final: prev: {
+        melia = self.packages.${prev.stdenv.hostPlatform.system}.default;
+      };
     };
 }
