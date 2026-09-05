@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO="buxjr311/melia-app"
+TEMPLATE="template/flake.nix"
+OUTPUT="flake.nix"
+
+# Fetch latest release
+LATEST_RELEASE=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest")
+
+VERSION=$(echo "$LATEST_RELEASE" | jq -r '.tag_name' | sed 's/^v//')
+
+if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+  echo "ERROR: Could not fetch version from latest release"
+  exit 1
+fi
+
+echo "Latest version: v${VERSION}"
+
+# Find asset names for x64 and arm64
+X64_ASSET=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | contains("x64")) | .name' | head -1)
+ARM64_ASSET=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | contains("arm64")) | .name' | head -1)
+
+if [ -z "$X64_ASSET" ]; then
+  echo "ERROR: Could not find x64 asset in release"
+  exit 1
+fi
+
+if [ -z "$ARM64_ASSET" ]; then
+  echo "ERROR: Could not find arm64 asset in release"
+  exit 1
+fi
+
+echo "x64 asset: ${X64_ASSET}"
+echo "arm64 asset: ${ARM64_ASSET}"
+
+# Download assets and compute SHA256
+TMPDIR=$(mktemp -d)
+trap 'rm -rf "$TMPDIR"' EXIT
+
+curl -sL -o "${TMPDIR}/x64" "https://github.com/${REPO}/releases/download/v${VERSION}/${X64_ASSET}"
+curl -sL -o "${TMPDIR}/arm64" "https://github.com/${REPO}/releases/download/v${VERSION}/${ARM64_ASSET}"
+
+X64_SHA=$(sha256sum "${TMPDIR}/x64" | awk '{print $1}')
+ARM64_SHA=$(sha256sum "${TMPDIR}/arm64" | awk '{print $1}')
+
+echo "x64 SHA256: ${X64_SHA}"
+echo "arm64 SHA256: ${ARM64_SHA}"
+
+# Replace template markers
+sed \
+  -e "s/{{ x64_sha }}/${X64_SHA}/g" \
+  -e "s/{{ arm64_sha }}/${ARM64_SHA}/g" \
+  -e "s/{{ version }}/${VERSION}/g" \
+  "$TEMPLATE" > "$OUTPUT"
+
+echo "Generated ${OUTPUT} with version ${VERSION}"
