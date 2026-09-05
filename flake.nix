@@ -18,11 +18,11 @@
       archMap = {
         x86_64-linux = {
           suffix = "x64";
-          sha256 = "187glnyzhv6aigxpnicvbxv30jshp7ygwikkbaci5xpfb61w4sf1";
+          sha256 = "ee7c69cf1865eef4c7a95ad14ac5df430fa3d71ddd5ec7c38c186ade93a4359e";
         };
         aarch64-linux = {
           suffix = "arm64";
-          sha256 = "0mhb9xqzb0qpy46yh5wrrixw1zhdvnzknr0yrl9cf7qhp09jls64";
+          sha256 = "3c315f04ec56881de2e32a8d38c0ecd62d7ea6a058f9eb3f52f198788c126051";
         };
       };
     in
@@ -33,7 +33,7 @@
           pkgs = import nixpkgs { inherit system; };
           arch = archMap.${system};
           pname = "melia";
-          version = "1.1.370";
+          version = "1.1.371";
 
           src = pkgs.fetchurl {
             url = "https://github.com/buxjr311/melia-app/releases/download/v${version}/${pname}_${version}_${arch.suffix}.AppImage";
