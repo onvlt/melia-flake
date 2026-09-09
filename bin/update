@@ -2,8 +2,8 @@
 set -euo pipefail
 
 REPO="buxjr311/melia-app"
-TEMPLATE="template/flake.nix"
-OUTPUT="flake.nix"
+TEMPLATE="template/default.nix"
+OUTPUT="default.nix"
 
 # Fetch latest release
 LATEST_RELEASE=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest")
