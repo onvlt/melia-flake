@@ -1,57 +1,69 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env nix-shell
+#! nix-shell -i fish -p bash jq gnused
 
-REPO="buxjr311/melia-app"
-TEMPLATE="template/default.nix"
-OUTPUT="default.nix"
+set REPO "buxjr311/melia-app"
+set TEMPLATE "template/default.nix"
+set OUTPUT "default.nix"
+
+if not set -q GITHUB_OUTPUT
+  set GITHUB_OUTPUT /dev/null
+end
 
 # Fetch latest release
-LATEST_RELEASE=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest")
+set LATEST_RELEASE (curl -s "https://api.github.com/repos/$REPO/releases/latest")
 
-VERSION=$(echo "$LATEST_RELEASE" | jq -r '.tag_name' | sed 's/^v//')
+set VERSION (echo $LATEST_RELEASE | jq -r '.tag_name' | sed 's/^v//')
+set CURRENT_VERSION (cat version | string trim)
 
-if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+if test -z "$VERSION" -o "$VERSION" = "null"
   echo "ERROR: Could not fetch version from latest release"
   exit 1
-fi
+end
 
-echo "Latest version: v${VERSION}"
+echo "Current version: v$CURRENT_VERSION"
+echo "Latest version: v$VERSION"
+
+if test $CURRENT_VERSION = $VERSION
+  echo "Package is already at the latest version"
+  echo "update_needed=false" >> $GITHUB_OUTPUT
+  exit 1
+end
 
 # Find asset names for x64 and arm64
-X64_ASSET=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | contains("x64")) | .name' | head -1)
-ARM64_ASSET=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | contains("arm64")) | .name' | head -1)
+set X64_ASSET (echo $LATEST_RELEASE | jq -r '.assets[] | select(.name | endswith("_x64.AppImage")) | .name' | head -1)
+set ARM64_ASSET (echo $LATEST_RELEASE | jq -r '.assets[] | select(.name | endswith("_arm64.AppImage")) | .name' | head -1)
 
-if [ -z "$X64_ASSET" ]; then
+if test -z "$X64_ASSET"
   echo "ERROR: Could not find x64 asset in release"
   exit 1
-fi
+end
 
-if [ -z "$ARM64_ASSET" ]; then
+if test -z "$ARM64_ASSET"
   echo "ERROR: Could not find arm64 asset in release"
   exit 1
-fi
+end
 
-echo "x64 asset: ${X64_ASSET}"
-echo "arm64 asset: ${ARM64_ASSET}"
+echo "x64 asset: $X64_ASSET"
+echo "arm64 asset: $ARM64_ASSET"
 
-# Download assets and compute SHA256
-TMPDIR=$(mktemp -d)
-trap 'rm -rf "$TMPDIR"' EXIT
+# Extract SHA256 from digest field
+set X64_HASH (echo $LATEST_RELEASE | jq -r --arg name $X64_ASSET '.assets[] | select(.name == $name) | .digest | sub("^sha256:";"")')
+set ARM64_HASH (echo $LATEST_RELEASE | jq -r --arg name $ARM64_ASSET '.assets[] | select(.name == $name) | .digest | sub("^sha256:";"")')
 
-curl -sL -o "${TMPDIR}/x64" "https://github.com/${REPO}/releases/download/v${VERSION}/${X64_ASSET}"
-curl -sL -o "${TMPDIR}/arm64" "https://github.com/${REPO}/releases/download/v${VERSION}/${ARM64_ASSET}"
-
-X64_SHA=$(sha256sum "${TMPDIR}/x64" | awk '{print $1}')
-ARM64_SHA=$(sha256sum "${TMPDIR}/arm64" | awk '{print $1}')
-
-echo "x64 SHA256: ${X64_SHA}"
-echo "arm64 SHA256: ${ARM64_SHA}"
+echo "x64 SHA256: $X64_HASH"
+echo "arm64 SHA256: $ARM64_HASH"
 
 # Replace template markers
 sed \
-  -e "s/{{ x64_sha }}/${X64_SHA}/g" \
-  -e "s/{{ arm64_sha }}/${ARM64_SHA}/g" \
-  -e "s/{{ version }}/${VERSION}/g" \
+  -e "s/{{ x64_hash }}/$X64_HASH/g" \
+  -e "s/{{ arm64_hash }}/$ARM64_HASH/g" \
+  -e "s/{{ version }}/$VERSION/g" \
   "$TEMPLATE" > "$OUTPUT"
 
-echo "Generated ${OUTPUT} with version ${VERSION}"
+
+echo $VERSION > version
+
+echo "Generated $OUTPUT with version $VERSION"
+
+echo "update_needed=true" >> $GITHUB_OUTPUT
+echo "latest_version=$VERSION" >> $GITHUB_OUTPUT

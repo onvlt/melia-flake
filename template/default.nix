@@ -5,11 +5,11 @@ let
   archMap = {
     x86_64-linux = {
       suffix = "x64";
-      sha256 = "{{ x64_sha }}";
+      sha256 = "{{ x64_hash }}";
     };
     aarch64-linux = {
       suffix = "arm64";
-      sha256 = "{{ arm64_sha }}";
+      sha256 = "{{ arm64_hash }}";
     };
   };
 

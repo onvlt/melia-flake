@@ -1,0 +1,33 @@
+name: update-eobcanka
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  update:
+    runs-on: nix
+    timeout-minutes: 30
+    env:
+      NIX_CONFIG: extra-experimental-features = nix-command flakes
+    steps:
+      - name: Check out repository
+        uses: https://code.nolog.cz/risai/checkout@v1
+
+      - name: Update version and hashes
+        id: update
+        run: ./bin/update
+
+      - name: Check if package builds successfully
+        if: steps.update.output.update_needed == 'true'
+        run: nix build .
+
+      - name: Commit and push
+        if: steps.changed.output.update_needed == 'true'
+        env:
+          VERSION: ${{ steps.update.outputs.latest_version }}
+        run: |
+          set -euo pipefail
+          git add .
+          git commit -m "feat: update to version $VERSION"
+          git push origin "HEAD:${GITHUB_REF_NAME:-main}"
