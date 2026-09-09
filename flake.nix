@@ -30,7 +30,7 @@
       packages = forAllSystems (
         system:
         let
-          pkgs = import nixpkgs { inherit system; };
+          pkgs = nixpkgs.legacyPackages.${system};
           arch = archMap.${system};
           pname = "melia";
           version = "1.1.374";
@@ -72,7 +72,7 @@
               description = "The modern email client for Linux";
               homepage = "https://melia.buxjr.com/";
               downloadPage = "https://melia.buxjr.com/download";
-              # license = pkgs.lib.licenses.unfree;
+              license = pkgs.lib.licenses.unfree;
               platforms = systems;
             };
 
