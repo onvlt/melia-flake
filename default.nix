@@ -1,6 +1,5 @@
 {
   pkgs,
-  system,
 }:
 let
   archMap = {
@@ -14,7 +13,7 @@ let
     };
   };
 
-  arch = archMap.${system};
+  arch = archMap.${pkgs.stdenv.hostPlatform.system};
   pname = "melia";
   version = "1.1.374";
 

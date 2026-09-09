@@ -6,7 +6,7 @@
   };
 
   outputs =
-    { self, nixpkgs, ... }:
+    { nixpkgs, ... }:
     let
       systems = [
         "x86_64-linux"
@@ -23,7 +23,7 @@
             inherit system;
             config.allowUnfree = true;
           };
-          package = import ./default.nix { inherit pkgs system; };
+          package = import ./default.nix { inherit pkgs; };
         in
         {
           default = package;
@@ -32,7 +32,7 @@
       );
 
       overlays.default = final: prev: {
-        melia = self.packages.${prev.stdenv.hostPlatform.system}.default;
+        melia = import ./default.nix { pkgs = final; };
       };
     };
 }
