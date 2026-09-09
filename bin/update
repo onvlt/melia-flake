@@ -1,5 +1,5 @@
 #!/usr/bin/env nix-shell
-#! nix-shell -i fish -p bash jq gnused
+#! nix-shell -i fish -p fish jq gnused
 
 set REPO "buxjr311/melia-app"
 set TEMPLATE "template/default.nix"
@@ -12,21 +12,21 @@ end
 # Fetch latest release
 set LATEST_RELEASE (curl -s "https://api.github.com/repos/$REPO/releases/latest")
 
-set VERSION (echo $LATEST_RELEASE | jq -r '.tag_name' | sed 's/^v//')
-set CURRENT_VERSION (cat version | string trim)
+set LATEST_VERSION (echo $LATEST_RELEASE | jq -r '.tag_name' | sed 's/^v//')
+set CURRENT_VERSION (nix eval --raw .#packages.x86_64-linux.melia.version)
 
-if test -z "$VERSION" -o "$VERSION" = "null"
+if test -z "$LATEST_VERSION" -o "$LATEST_VERSION" = "null"
   echo "ERROR: Could not fetch version from latest release"
   exit 1
 end
 
 echo "Current version: v$CURRENT_VERSION"
-echo "Latest version: v$VERSION"
+echo "Latest version: v$LATEST_VERSION"
 
-if test $CURRENT_VERSION = $VERSION
+if test $CURRENT_VERSION = $LATEST_VERSION
   echo "Package is already at the latest version"
-  echo "update_needed=false" >> $GITHUB_OUTPUT
-  exit 1
+  echo "updated=false" >> $GITHUB_OUTPUT
+  exit 0
 end
 
 # Find asset names for x64 and arm64
@@ -57,13 +57,11 @@ echo "arm64 SHA256: $ARM64_HASH"
 sed \
   -e "s/{{ x64_hash }}/$X64_HASH/g" \
   -e "s/{{ arm64_hash }}/$ARM64_HASH/g" \
-  -e "s/{{ version }}/$VERSION/g" \
+  -e "s/{{ version }}/$LATEST_VERSION/g" \
   "$TEMPLATE" > "$OUTPUT"
 
 
-echo $VERSION > version
+echo "Generated $OUTPUT with version $LATEST_VERSION"
 
-echo "Generated $OUTPUT with version $VERSION"
-
-echo "update_needed=true" >> $GITHUB_OUTPUT
-echo "latest_version=$VERSION" >> $GITHUB_OUTPUT
+echo "updated=true" >> $GITHUB_OUTPUT
+echo "new_version=$LATEST_VERSION" >> $GITHUB_OUTPUT

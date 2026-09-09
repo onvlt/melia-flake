@@ -7,28 +7,42 @@ on:
 
 jobs:
   update:
-    runs-on: nix
-    timeout-minutes: 30
-    env:
-      NIX_CONFIG: extra-experimental-features = nix-command flakes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Check out repository
-        uses: https://code.nolog.cz/risai/checkout@v1
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update version and hashes
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31.9.0
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Update package to latest version if available
         id: update
         run: ./bin/update
 
-      - name: Check if package builds successfully
-        if: steps.update.output.update_needed == 'true'
-        run: nix build .
+      - name: Update flake inputs
+        if: steps.update.outputs.updated == 'true'
+        run: nix flake update
 
-      - name: Commit and push
-        if: steps.changed.output.update_needed == 'true'
-        env:
-          VERSION: ${{ steps.update.outputs.latest_version }}
+      - name: Check if flake evaluates
+        if: steps.update.outputs.updated == 'true'
+        run: nix flake check --all-systems
+
+      - name: Check if packages build
+        if: steps.update.outputs.updated == 'true'
+        run: nix build
+
+      - name: Commit and push changes
+        if: steps.update.outputs.updated == 'true'
         run: |
-          set -euo pipefail
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "feat: update to version $VERSION"
-          git push origin "HEAD:${GITHUB_REF_NAME:-main}"
+          VERSION=$(nix eval --raw .#packages.x86_64-linux.melia.version)
+          git commit -m "chore: update melia to v$VERSION"
+          git push
