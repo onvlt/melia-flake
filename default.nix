@@ -5,17 +5,17 @@ let
   archMap = {
     x86_64-linux = {
       suffix = "x64";
-      sha256 = "c9507bb567c0ccf43336c88dc4fdf435eef5f822de2bf8f2ac35962038eb5546";
+      sha256 = "f207e17a2a9b8b6211ea8cfb06d2135cf4c78d49cd34cbb20b624a158b96dcb2";
     };
     aarch64-linux = {
       suffix = "arm64";
-      sha256 = "2ecf52446dea0dfc5e36afdfa6b9fc7e35ef76aed137ee990d6ad810179a7ba6";
+      sha256 = "0a855f50e243fac9980ca1522a0640624aaeb3d206fc74db597ce224d0a363cc";
     };
   };
 
   arch = archMap.${pkgs.stdenv.hostPlatform.system};
   pname = "melia";
-  version = "1.1.388";
+  version = "1.1.389";
 
   src = pkgs.fetchurl {
     url = "https://github.com/buxjr311/melia-app/releases/download/v${version}/${pname}_${version}_${arch.suffix}.AppImage";
